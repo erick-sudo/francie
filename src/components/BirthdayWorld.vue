@@ -1,18 +1,12 @@
 <script setup lang="ts">
-import * as CANNON from "cannon";
 import {
   AxesHelper,
   DirectionalLight,
-  DoubleSide,
   Fog,
   HemisphereLight,
   Mesh,
-  MeshPhongMaterial,
   PerspectiveCamera,
-  RepeatWrapping,
   Scene,
-  SphereGeometry,
-  TextureLoader,
   Vector3,
   WebGLRenderer,
 } from "three";
@@ -24,37 +18,22 @@ import {
 let camera: PerspectiveCamera, scene: Scene, renderer: WebGLRenderer;
 let controls: OrbitControls;
 
-let world: CANNON.World;
-let sphereBody: CANNON.Body;
-let ballMesh: Mesh;
-let particles = [];
-let clothGeometry: ParametricGeometry;
-let clothMesh: Mesh;
-
-var dt = 1 / 60,
-  R = 0.2;
-
-var clothMass = 1; // 1 kg in total
-var clothSize = 1; // 1 meter
-var Nx = 12;
-var Ny = 12;
-var mass = (clothMass / Nx) * Ny;
-
-var restDistance = clothSize / Nx;
-
-// Test
-var ballSize = 0.1;
-
-var clothFunction = plane(restDistance * Nx, restDistance * Ny);
-
-function plane(width: number, height: number) {
-  return function (u: number, v: number) {
-    var x = (u - 0.5) * width;
-    var y = (v + 0.5) * height;
-    var z = 0;
-    return new Vector3(x, y, z);
-  };
-}
+var text = "Happy Birthday! Dear Franciscah! --- ^o^ --- ";
+var textColors = [0x00bfff, 0xff00ff, 0x7cfc00, 0xdc143c, 0x7fff00, 0x00bfff, 0x00ffff,0xff0000];
+var textScaleSize = 0.3; //delta scale for letters
+var textAnimeColors = []; // Index of current color for each letter
+var textRotSpeed = 0.2;  // Text world rotation speed. in degree
+var textInitialSize = 120; // Initial font size for text
+var textYScope = 5  // Text Sin wave height.
+var textYSpeed = 10  // Text Sin wave speed
+var textBevelThickness = 3; // Text bevel thickness
+var textBevelSize = 3;   // Text bevel size
+var textFont = "fonts/gentilis_bold.typeface.json";  // textFont  ::Only ThreeJS fonts are available
+var distanceToText = 1000; // Distance from cakemodel to text
+var textSizeInAngle = 8; // Angle width for each letter.
+var textRot = 0;  // current text rotation.
+var textColorTransformSpeed = 50; // text color transform speed.  !CAUTION: The smaller the faster
+var textObjects = [];
 
 const canvasContainer = useTemplateRef("canvasContainer");
 
@@ -114,41 +93,6 @@ function init() {
 
     const axesHelper = new AxesHelper(5);
     scene.add(axesHelper);
-
-    const textureLoader = new TextureLoader();
-    textureLoader.load("sunflower.jpg", (clothTexture) => {
-      clothTexture.wrapS = clothTexture.wrapT = RepeatWrapping;
-      clothTexture.anisotropy = 16;
-
-      // cloth material
-      const clothMaterial = new MeshPhongMaterial({
-        alphaTest: 0.5,
-        color: 0xffffff,
-        specular: 0x333333,
-        emissive: 0x222222,
-        //shininess: 5,
-        map: clothTexture,
-        side: DoubleSide,
-      });
-
-      // cloth geometry
-      clothGeometry = new ParametricGeometry(clothFunction, Nx, Ny);
-      // clothGeometry.dynamic = true;
-      // clothGeometry.computeVertexNormals();
-
-      // cloth mesh
-      clothMesh = new Mesh(clothGeometry, clothMaterial);
-      clothMesh.position.set(0, 0, 0);
-      clothMesh.castShadow = true;
-      scene.add(clothMesh);
-    });
-
-    // Sphere
-    const ballGeometry = new SphereGeometry(ballSize, 20, 20);
-    const ballMaterial = new MeshPhongMaterial({ color: 0x888888 });
-    ballMesh = new Mesh(ballGeometry, ballMaterial);
-    ballMesh.castShadow = true;
-    scene.add(ballMesh);
   }
 }
 
@@ -168,41 +112,6 @@ function animate() {
   const time = -performance.now() / 1000;
 
   renderer.render(scene, camera);
-}
-
-function initCannon() {
-  world = new CANNON.World();
-  world.broadphase = new CANNON.NaiveBroadphase();
-  world.gravity.set(0, -9.82, 0);
-  world.solver.iterations = 20;
-
-  // Materials
-  const clothMaterial = new CANNON.Material("cloth_material");
-  const sphereMaterial = new CANNON.Material("sphere_material");
-  const clothSphereContactMaterial = new CANNON.ContactMaterial(
-    clothMaterial,
-    sphereMaterial,
-    {
-      friction: 0.0,
-      restitution: 0.0,
-    }
-  );
-
-  // Adjust constraint equation parameters for ground/ground contact
-  clothSphereContactMaterial.contactEquationStiffness = 1e9;
-  clothSphereContactMaterial.contactEquationRelaxation = 3;
-
-  // Add contact material to the world
-  world.addContactMaterial(clothSphereContactMaterial);
-
-  // Create sphere
-  const sphereShape = new CANNON.Sphere(ballSize);
-  sphereBody = new CANNON.Body({
-    mass: 0,
-  });
-  sphereBody.addShape(sphereShape);
-  sphereBody.position.set(0, 0, 0);
-  world.addBody(sphereBody);
 }
 
 onMounted(() => {

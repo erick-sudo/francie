@@ -1,6 +1,6 @@
 <template>
   <!-- <home /> -->
-  <cannon-lab></cannon-lab>
+  <birthday-world></birthday-world>
 </template>
 
 <script lang="ts" setup>
